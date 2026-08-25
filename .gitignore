@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+
+# Model weights (sincronizar con scripts/sync_assets.ps1)
+*.safetensors
+*.bin
+*.pt
+backend/models/**/checkpoint-*/
+
+# Node / frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# IDE / OS
+.DS_Store
+Thumbs.db
