@@ -1,0 +1,15 @@
+# Entornos virtuales
+**/venv/
+**/.venv/
+**/env/
+
+# Pesos y estados grandes del modelo
+**/*.safetensors
+**/optimizer.pt
+**/scheduler.pt
+**/rng_state.pth
+
+# Artefactos locales
+**/.ipynb_checkpoints/
+**/__pycache__/
+*.pyc

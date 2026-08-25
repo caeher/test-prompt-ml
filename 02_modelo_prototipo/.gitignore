@@ -1,0 +1,15 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Pesos y artefactos grandes del modelo
+modelo_entrenado/*.safetensors
+modelo_entrenado/*.bin
+modelo_entrenado/*.pt
+modelo_entrenado/*.pth
+
+# Artefactos locales
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
