@@ -7,10 +7,59 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from huggingface_hub import snapshot_download
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from ml.inference_contract import InferenceContract, apply_normalization, resolve_inference_contract
 from ml.paths import MODELS_DIR
+
+DEFAULT_MODEL_REPOSITORY = "caeher/mbert-sv"
+
+
+def has_model_weights(model_dir: Path) -> bool:
+    """Indica si el directorio contiene un checkpoint que Transformers puede cargar."""
+    return any(
+        (
+            (model_dir / "model.safetensors").is_file(),
+            (model_dir / "pytorch_model.bin").is_file(),
+            bool(list(model_dir.glob("model-*.safetensors"))),
+            bool(list(model_dir.glob("pytorch_model-*.bin"))),
+        )
+    )
+
+
+def ensure_model_weights(model_dir: Path) -> None:
+    """Descarga el checkpoint de Hugging Face si todavía no hay pesos locales.
+
+    ``local_dir`` permite reutilizar el checkpoint fuera de Docker y mediante el
+    volumen nombrado de Docker Compose.
+    """
+    if has_model_weights(model_dir):
+        return
+
+    repository = os.getenv("HF_MODEL_REPO", DEFAULT_MODEL_REPOSITORY)
+    revision = os.getenv("HF_MODEL_REVISION") or None
+    token = os.getenv("HF_TOKEN") or None
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        snapshot_download(
+            repo_id=repository,
+            revision=revision,
+            token=token,
+            local_dir=str(model_dir),
+        )
+    except Exception as exc:  # pragma: no cover - depende de red/credenciales
+        raise RuntimeError(
+            f"No se pudieron descargar los pesos de {repository}. "
+            "Compruebe la conexión a Hugging Face o defina HF_TOKEN si el repo es privado."
+        ) from exc
+
+    if not has_model_weights(model_dir):
+        raise RuntimeError(
+            f"La descarga desde {repository} finalizó, pero no contiene pesos compatibles "
+            f"en {model_dir}."
+        )
 
 
 def get_device() -> torch.device:
@@ -52,8 +101,7 @@ class CachedPredictor:
         normalize: bool = True,
     ):
         self.model_dir = resolve_model_dir(model_dir, backend=backend)
-        if not self.model_dir.exists():
-            raise FileNotFoundError(f"Checkpoint no encontrado: {self.model_dir}")
+        ensure_model_weights(self.model_dir)
 
         self.contract: InferenceContract = resolve_inference_contract(self.model_dir)
         self.device = get_device()
