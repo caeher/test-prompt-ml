@@ -8,8 +8,11 @@ services:
     environment:
       MODEL_BACKEND: mbert
       MODEL_DIR: /app/models/mbert-sv
+      HF_MODEL_REPO: caeher/mbert-sv
       CORS_ORIGINS: http://localhost:8080,http://localhost
       PYTHONPATH: /app
+    volumes:
+      - mbert_model:/app/models/mbert-sv
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -22,7 +25,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8080:3000"
     depends_on:
       backend:
         condition: service_healthy
+
+volumes:
+  mbert_model:

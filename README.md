@@ -22,8 +22,8 @@ applications/
 ## Requisitos
 
 - Python 3.10+
-- Node.js 18+ (solo desarrollo frontend)
-- Checkpoint en `backend/models/mbert-sv/` con `model.safetensors`, `config.json`, `tokenizer.json`, `tokenizer_config.json`, `inference_contract.json`
+- Node.js 20.9+ (solo desarrollo frontend; requerido por Next.js 16)
+- Para uso local, conexión a Hugging Face en el primer arranque; el checkpoint se descarga automáticamente desde `caeher/mbert-sv` a `backend/models/mbert-sv/`. También se puede colocar manualmente en esa ruta.
 
 ### Sincronizar desde el monorepo padre
 
@@ -58,27 +58,36 @@ uvicorn main:app --reload --port 8000
 |----------|---------|-------------|
 | `MODEL_BACKEND` | `mbert` | Backend de inferencia |
 | `MODEL_DIR` | `backend/models/mbert-sv` | Ruta al checkpoint |
-| `CORS_ORIGINS` | `http://localhost:5173` | Orígenes permitidos |
+| `HF_MODEL_REPO` | `caeher/mbert-sv` | Repositorio de Hugging Face para descarga inicial |
+| `HF_MODEL_REVISION` | — | Rama, tag o commit del checkpoint remoto |
+| `HF_TOKEN` | — | Token de Hugging Face para repositorios privados |
+| `CORS_ORIGINS` | `http://localhost:3000` | Orígenes permitidos |
 
-## Frontend (puerto 5173)
+## Frontend (Next.js, puerto 8080 con Docker / 3000 en desarrollo)
 
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev -- --hostname 0.0.0.0
 ```
 
-Abrir http://localhost:5173. El proxy de Vite reenvía `/api` y `/health` al backend.
+Abrir http://localhost:3000 en desarrollo. En Docker, abrir
+http://localhost:8080; Next.js reenvía `/api` y `/health` al backend interno.
 
 ## Docker
 
 ```powershell
 cd applications
-# Asegúrese de tener backend/models/mbert-sv/ (sync_assets.ps1 o copia manual)
 docker compose up --build
 ```
 
-- **Frontend:** http://localhost:8080
+En el primer arranque, el backend descarga los pesos de
+[`caeher/mbert-sv`](https://huggingface.co/caeher/mbert-sv). Docker los conserva
+en el volumen nombrado `mbert_model`, por lo que los siguientes arranques no los
+vuelven a descargar. Para usar otro checkpoint, defina `HF_MODEL_REPO` (y
+`HF_TOKEN` si es privado).
+
+- **Frontend Next.js:** http://localhost:8080
 - **API:** http://localhost:8000/docs
 
 Variables en compose: `MODEL_DIR=/app/models/mbert-sv`, `CORS_ORIGINS=http://localhost:8080,http://localhost`

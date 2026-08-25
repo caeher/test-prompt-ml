@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import {
@@ -136,8 +138,8 @@ export default function App() {
           )}
           {!health?.model_loaded && health?.error && (
             <p className="text-sm text-[var(--color-muted-foreground)]">
-              Coloque el checkpoint en <code>models/mbert-sv/</code> (descomprima{" "}
-              <code>artifacts/mbert-sv-audit.zip</code>).
+              El backend está preparando el modelo. Comprueba la conexión con Hugging Face si el
+              problema persiste.
             </p>
           )}
         </CardContent>
