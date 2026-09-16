@@ -1,112 +1,115 @@
-# Apps de inferencia
+# Proyecto de detección de discurso de odio
 
-Repositorio autónomo: API FastAPI + interfaz web (React) para clasificar toxicidad en 4 clases con **mBERT**.
+Este repositorio contiene la preparación del dataset y el prototipo funcional de un modelo de clasificación para detectar toxicidad y discurso de odio en español.
 
-No depende del paquete `discurso_odio` del monorepo. El código ML necesario vive en `backend/ml/`.
+## Estructura del proyecto
 
-## Estructura
-
+```text
+entrenamientos/
+├── README.md
+├── 01_dataset_y_entrenamiento/
+│   ├── data/
+│   │   ├── train.csv
+│   │   ├── val.csv
+│   │   ├── test.csv
+│   │   └── corpus_limpio.csv
+│   ├── notebooks/
+│   ├── results_xlmr/
+│   └── venv/
+├── 02_modelo_prototipo/
+│   ├── modelo_entrenado/
+│   │   ├── config.json
+│   │   ├── model.safetensors
+│   │   ├── tokenizer.json
+│   │   ├── tokenizer_config.json
+│   │   └── training_args.bin
+│   ├── documentacion/
+│   ├── estadisticas.ipynb
+│   ├── inferencia.py
+│   ├──Imagenes de utilidad/
+└── (archivos adicionales de métricas)
 ```
-applications/
-  backend/
-    main.py, services.py, schemas.py
-    ml/              # inferencia, normalización, LIME
-    config/          # settings.yaml
-    models/mbert-sv/ # checkpoint (no en Git)
-    metrics/         # JSON de referencia para /api/metrics
-  frontend/
-  docker-compose.yml
-  scripts/sync_assets.ps1
-```
+
+## Qué hace cada carpeta
+
+- 01_dataset_y_entrenamiento: contiene el dataset, notebooks de entrenamiento y artefactos relacionados con la preparación de datos.
+- 02_modelo_prototipo: contiene el modelo ya entrenado listo para inferencia, junto con sus métricas y el script de prueba.
+- hateV1_modelo_xlmr.zip: zip opcional del modelo o paquete de entrega.
 
 ## Requisitos
 
-- Python 3.10+
-- Node.js 20.9+ (solo desarrollo frontend; requerido por Next.js 16)
-- Para uso local, conexión a Hugging Face en el primer arranque; el checkpoint se descarga automáticamente desde `caeher/mbert-sv` a `backend/models/mbert-sv/`. También se puede colocar manualmente en esa ruta.
+- Python 3.10 o superior
+- Pip
+- Entorno virtual recomendado
 
-### Sincronizar desde el monorepo padre
+### Dependencias principales
 
-Si `applications/` aún vive dentro del repo principal:
-
-```powershell
-cd applications
-.\scripts\sync_assets.ps1
+```bash
+pip install torch transformers
 ```
 
-## Backend (puerto 8000)
+Si necesitas versión más específica según tu entorno, puedes instalar adicionalmente:
 
-```powershell
-cd backend
-pip install -r requirements.txt
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-uvicorn main:app --reload --port 8000
+```bash
+pip install pandas numpy scikit-learn
 ```
 
-### Endpoints
+## Cómo ejecutar la inferencia
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/health` | Estado del modelo y contrato de inferencia |
-| POST | `/api/predict` | Clasificación rápida |
-| POST | `/api/explain` | Explicación LIME (lenta) |
-| GET | `/api/metrics` | Métricas globales de referencia |
+1. Abre una terminal en la carpeta principal del proyecto.
+2. Activa tu entorno virtual si lo usas.
+3. Dirígete a la carpeta del prototipo:
 
-### Variables de entorno
-
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `MODEL_BACKEND` | `mbert` | Backend de inferencia |
-| `MODEL_DIR` | `backend/models/mbert-sv` | Ruta al checkpoint |
-| `HF_MODEL_REPO` | `caeher/mbert-sv` | Repositorio de Hugging Face para descarga inicial |
-| `HF_MODEL_REVISION` | — | Rama, tag o commit del checkpoint remoto |
-| `HF_TOKEN` | — | Token de Hugging Face para repositorios privados |
-| `CORS_ORIGINS` | `http://localhost:3000` | Orígenes permitidos |
-
-## Frontend (Next.js, puerto 8080 con Docker / 3000 en desarrollo)
-
-```powershell
-cd frontend
-npm install
-npm run dev -- --hostname 0.0.0.0
+```bash
+cd 02_modelo_prototipo
 ```
 
-Abrir http://localhost:3000 en desarrollo. En Docker, abrir
-http://localhost:8080; Next.js reenvía `/api` y `/health` al backend interno.
+4. Ejecuta el script:
 
-## Docker
-
-```powershell
-cd applications
-docker compose up --build
+```bash
+python inferencia.py
 ```
 
-En el primer arranque, el backend descarga los pesos de
-[`caeher/mbert-sv`](https://huggingface.co/caeher/mbert-sv). Docker los conserva
-en el volumen nombrado `mbert_model`, por lo que los siguientes arranques no los
-vuelven a descargar. Para usar otro checkpoint, defina `HF_MODEL_REPO` (y
-`HF_TOKEN` si es privado).
+## Qué hace el script
 
-- **Frontend Next.js:** http://localhost:8080
-- **API:** http://localhost:8000/docs
+- Carga el tokenizador y el modelo ya entrenado.
+- Detecta automáticamente si se usa la GPU o la CPU.
+- Evalúa frases de ejemplo.
+- Permite ingresar textos manualmente en modo interactivo.
 
-Variables en compose: `MODEL_DIR=/app/models/mbert-sv`, `CORS_ORIGINS=http://localhost:8080,http://localhost`
+## Etiquetas del modelo
 
-### Agregar XLM-R después
+El modelo clasifica en estas 4 categorías:
 
-1. Copiar checkpoint a `backend/models/xlmr/`
-2. En Docker/entorno: `MODEL_DIR=/app/models/xlmr` (o ruta local equivalente)
-3. Opcional: perfil o segundo servicio en `docker-compose.yml`
+- No Tóxico
+- Lenguaje Ofensivo
+- Discurso de Odio
+- Amenazas/Violencia
 
-## Contrato de inferencia
+## Ejemplo de uso interactivo
 
-- Normalizador: `normalize_for_model` v1.1
-- `max_length`: 128
-- Clases: No Tóxico (0), Lenguaje Ofensivo (1), Discurso de Odio (2), Amenazas/Violencia (3)
-
-## Tests
-
-```powershell
-cd backend
-pytest tests/ -v
+```text
+Texto > Ese maje no sabe lo que está haciendo
+-> Clasificación: Lenguaje Ofensivo (83.21%)
 ```
+
+## Notas importantes
+
+- El modelo entrenado se encuentra en la ruta: 02_modelo_prototipo/modelo_entrenado
+- Si por alguna razón no se encuentra esa carpeta, el script intenta compatibilidad con una ruta vieja llamada mi_modelo_xlmr
+- La inferencia se hace por CPU por defecto si no hay GPU disponible
+
+## Si quieres reutilizarlo en otra máquina
+
+1. Copia la carpeta 02_modelo_prototipo completa.
+2. Asegúrate de mantener la estructura interna de modelo_entrenado.
+3. Ejecuta el script desde esa carpeta.
+
+## Contacto / mantenimiento
+
+Este proyecto está pensado como prototipo funcional para pruebas y validación interna. Si se quiere mantener o desplegar en producción, se recomienda:
+
+- revisar el dataset de entrenamiento,
+- validar con más ejemplos reales,
+- documentar la política de clasificación,
+- y revisar la métrica final del modelo antes de uso operativo.

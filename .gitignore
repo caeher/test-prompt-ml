@@ -1,21 +1,15 @@
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
-.env
+# Entornos virtuales
+**/venv/
+**/.venv/
+**/env/
 
-# Model weights (sincronizar con scripts/sync_assets.ps1)
-*.safetensors
-*.bin
-*.pt
-backend/models/**/checkpoint-*/
+# Pesos y estados grandes del modelo
+**/*.safetensors
+**/optimizer.pt
+**/scheduler.pt
+**/rng_state.pth
 
-# Node / frontend build
-frontend/node_modules/
-frontend/dist/
-frontend/*.tsbuildinfo
-
-# IDE / OS
-.DS_Store
-Thumbs.db
+# Artefactos locales
+**/.ipynb_checkpoints/
+**/__pycache__/
+*.pyc
